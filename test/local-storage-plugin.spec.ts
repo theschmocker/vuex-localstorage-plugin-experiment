@@ -155,6 +155,49 @@ describe('createLocalStoragePlugin', () => {
     expect(actualTodos).toEqual(expectedTodos);
     expect(actualLastId).toEqual(expectedLastId);
   });
+
+  it('can watch for custom mutation name', () => {
+    interface StopLightState {
+      color: 'green' | 'yellow' | 'red';
+    }
+
+    const CHANGE = 'CHANGE';
+    const store = createStore<StopLightState>({
+      state() {
+        return {
+          color: 'green',
+        };
+      },
+      mutations: {
+        [CHANGE](state) {
+          const { color } = state;
+
+          let nextColor: StopLightState['color'];
+          if (color === 'green') {
+            nextColor = 'yellow';
+          } else if (color === 'yellow') {
+            nextColor = 'red';
+          } else {
+            nextColor = 'green';
+          }
+
+          state.color = nextColor;
+        },
+      },
+      plugins: [createLocalStoragePlugin({
+        color: {
+          mutation: CHANGE,
+        }
+      })],
+    });
+
+    store.commit(CHANGE);
+
+    const expected = store.state.color;
+    const actual = JSON.parse(localStorage.getItem('color')!);
+
+    expect(actual).toBe(expected);
+  });
 });
 
 // Begone, boilerplate
