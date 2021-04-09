@@ -1,4 +1,4 @@
-import { createMockLocalStorage } from './mock-local-store';
+import { createMockLocalStorage } from '../src/mock-local-store';
 
 describe('createMockLocalStorage', () => {
   it('can set and get an item', () => {

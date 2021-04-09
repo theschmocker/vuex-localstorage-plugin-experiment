@@ -1,3 +1,5 @@
+// I wrote this without realizing that jest (or some dep) implements localStorage.
+// don't really need, but I'll keep it around for now
 export function createMockLocalStorage(): Storage {
   let store: Record<string, string> = {};
 

@@ -1,6 +1,5 @@
 import { createStore, Plugin, Store } from 'vuex';
-import { createLocalStoragePlugin } from './create-local-storage-plugin';
-import { createMockLocalStorage } from './mock-local-store';
+import { createLocalStoragePlugin } from '../src/local-storage-plugin';
 
 beforeEach(() => {
   localStorage.clear();
