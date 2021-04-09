@@ -90,6 +90,71 @@ describe('createLocalStoragePlugin', () => {
 
     expect(localStorage.getItem('count')).toBe('42');
   });
+
+  it('stores more complex objects', () => {
+    const store = createSimpleTodoStore(createLocalStoragePlugin({
+      todos: true,
+    }));
+
+    store.dispatch('addTodo', 'red, green, refactor');
+
+    const expected = [{ id: 1, text: 'red, green, refactor', done: false }];
+    const actual = JSON.parse(localStorage.getItem('todos')!)
+
+    expect(actual).toEqual(expected);
+  });
+
+  it('populates more complex objects', () => {
+    const expected = [{ id: 1, text: 'red, green, refactor', done: false }];
+
+    localStorage.setItem('todos', JSON.stringify(expected));
+
+    const store = createSimpleTodoStore(createLocalStoragePlugin({
+      todos: true,
+    }));
+
+    const actual = store.state.todos;
+
+    expect(actual).toEqual(expected);
+  });
+
+  it('stores multiple state fields', () => {
+    const store = createSimpleTodoStore(createLocalStoragePlugin({
+      todos: true,
+      lastId: true,
+    }));
+
+    store.dispatch('addTodo', 'red, green, refactor');
+
+    const expectedTodos = [{ id: 1, text: 'red, green, refactor', done: false }];
+    const actualTodos = JSON.parse(localStorage.getItem('todos')!)
+
+    expect(actualTodos).toEqual(expectedTodos);
+
+    const expectedLastId = 1;
+    const actualLastId = JSON.parse(localStorage.getItem('lastId')!);
+
+    expect(actualLastId).toEqual(expectedLastId);
+  });
+
+  it('populates multiple state fields', () => {
+    const expectedTodos = [{ id: 1, text: 'red, green, refactor', done: false }];
+    const expectedLastId = 1;
+
+    localStorage.setItem('todos', JSON.stringify(expectedTodos));
+    localStorage.setItem('lastId', JSON.stringify(expectedLastId));
+
+    const store = createSimpleTodoStore(createLocalStoragePlugin({
+      todos: true,
+      lastId: true,
+    }));
+
+    const actualTodos = store.state.todos;
+    const actualLastId = store.state.lastId;
+
+    expect(actualTodos).toEqual(expectedTodos);
+    expect(actualLastId).toEqual(expectedLastId);
+  });
 });
 
 // Begone, boilerplate
@@ -137,3 +202,39 @@ function createSimpleCountStore(plugin: Plugin<CountStoreState>): Store<CountSto
   });
 }
 
+interface Todo {
+  id: number;
+  text: string;
+  done: boolean;
+}
+interface TodoStoreState {
+  lastId: number;
+  todos: Todo[];
+}
+function createSimpleTodoStore(plugin: Plugin<TodoStoreState>): Store<TodoStoreState> {
+  return createStore<TodoStoreState>({
+    state() {
+      return {
+        lastId: 0,
+        todos: [],
+      }
+    },
+    mutations: {
+      todos(state, newTodos: Todo[]) {
+        state.todos = newTodos;
+      },
+      lastId(state, id: number) {
+        state.lastId = id;
+      }
+    },
+    actions: {
+      addTodo({ state, commit }, text: string) {
+        const { lastId, todos } = state;
+        const nextId = lastId + 1;
+        commit('lastId', nextId);
+        commit('todos', [...todos, { id: nextId, text, done: false }]);
+      }
+    },
+    plugins: [plugin]
+  });
+}
