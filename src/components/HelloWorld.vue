@@ -22,7 +22,11 @@
     <a href="https://v3.vuejs.org/" target="_blank">Vue 3 Docs</a>
   </p>
 
-  <button @click="count++">count is: {{ count }}</button>
+  <div>
+    <button @click="dec">Decrement</button>
+    <span>{{ count }}</span>
+    <button @click="inc">Increment</button>
+  </div>
   <p>
     Edit
     <code>components/HelloWorld.vue</code> to test hot module replacement.
@@ -30,7 +34,9 @@
 </template>
 
 <script lang="ts">
-import { ref, defineComponent } from 'vue'
+import { computed, defineComponent } from 'vue'
+import { useStore } from 'vuex';
+
 export default defineComponent({
   name: 'HelloWorld',
   props: {
@@ -40,8 +46,17 @@ export default defineComponent({
     }
   },
   setup: () => {
-    const count = ref(0)
-    return { count }
+    const store = useStore();
+
+    return {
+      count: computed(() => store.state.count),
+      inc() {
+        store.dispatch('increment');
+      },
+      dec() {
+        store.dispatch('decrement');
+      },
+    }
   }
 })
 </script>
