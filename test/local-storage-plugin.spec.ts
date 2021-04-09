@@ -1,5 +1,6 @@
 import { createStore, Plugin, Store } from 'vuex';
 import { createLocalStoragePlugin } from '../src/local-storage-plugin';
+import { createMockLocalStorage } from '../src/mock-local-store';
 
 beforeEach(() => {
   localStorage.clear();
@@ -28,6 +29,23 @@ describe('createLocalStoragePlugin', () => {
     );
 
     expect(store.state.name).toBe('Schmo');
+  });
+
+  it('can use a custom storage implementation', () => {
+    const customStorage = createMockLocalStorage();
+
+    const store = createSimpleNameStore(
+      createLocalStoragePlugin<NameStoreState>({
+        name: true,
+      }, {
+        storageImplementation: customStorage,
+      })
+    );
+
+    store.commit('name', 'Schmo');
+
+    expect(customStorage.getItem('name')).toBe('"Schmo"');
+    expect(localStorage.getItem('name')).toBeNull();
   });
 
   it('stores numeric state field in localStorage with custom serialization', () => {
