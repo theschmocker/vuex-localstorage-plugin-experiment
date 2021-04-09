@@ -12,8 +12,11 @@ export function createLocalStoragePlugin<S>(stateMap: LocalStoreStateMap<S>, opt
         continue;
       }
 
+      const serialized = storage.getItem(key);
       if (typeof field === 'boolean') {
-        store.state[key] = storage.getItem(key) as unknown as S[keyof S] ?? store.state[key];
+        if (serialized != null) {
+          store.state[key] = JSON.parse(serialized) as unknown as S[keyof S]
+        }
       } else {
         const serialized = storage.getItem(key);
         if (serialized != null) {
@@ -33,7 +36,7 @@ export function createLocalStoragePlugin<S>(stateMap: LocalStoreStateMap<S>, opt
           }
 
           if (typeof field === 'boolean') {
-            storage.setItem(key, state[key] as unknown as string)
+            storage.setItem(key, JSON.stringify(state[key]))
           } else {
             storage.setItem(key, field.serialize(state))
           }
@@ -48,7 +51,7 @@ interface LocalStoragePluginOptions {
 }
 
 type LocalStoreStateMap<S> = {
-  [FieldName in keyof S]?: S[FieldName] extends string ? boolean | Field<S, FieldName> : Field<S, FieldName>;
+  [FieldName in keyof S]?: boolean | Field<S, FieldName>
 }
 
 type Deserializer<S, K extends keyof S> = (serialized: string) => S[K];
