@@ -13,12 +13,10 @@ export function createLocalStoragePlugin<S>(stateMap: LocalStoreStateMap<S>, opt
       }
 
       const serialized = storage.getItem(key);
-      if (typeof field === 'object' && 'deserialize' in field) {
-        if (serialized != null) {
+      if (serialized != null) {
+        if (typeof field === 'object' && 'deserialize' in field) {
           store.state[key] = field.deserialize(serialized);
-        }
-      } else {
-        if (serialized != null) {
+        } else {
           store.state[key] = JSON.parse(serialized) as unknown as S[keyof S]
         }
       }
@@ -27,6 +25,9 @@ export function createLocalStoragePlugin<S>(stateMap: LocalStoreStateMap<S>, opt
     store.subscribe((mutation, state) => {
       for (const key of Object.keys(stateMap) as (keyof typeof stateMap)[]) {
         const field = stateMap[key];
+        if (field == null) { // appease TypeScript
+          continue;
+        }
 
         let mutationType = key as string;
         if (typeof field === 'object' && field.mutation != null) {
@@ -34,11 +35,6 @@ export function createLocalStoragePlugin<S>(stateMap: LocalStoreStateMap<S>, opt
         }
 
         if (mutation.type === mutationType) {
-
-          if (field == null) { // appease TypeScript
-            continue;
-          }
-
           if (typeof field === 'object' && 'serialize' in field) {
             storage.setItem(key, field.serialize(state))
           } else {
@@ -55,8 +51,10 @@ interface LocalStoragePluginOptions {
 }
 
 type LocalStoreStateMap<S> = {
-  [FieldName in keyof S]?: boolean | Field | FieldWithCustomSerialization<S, FieldName>
+  [FieldName in keyof S]?: FieldDefinition<S, FieldName>;
 }
+
+type FieldDefinition<S, FieldName extends keyof S> = true | Field | FieldWithCustomSerialization<S, FieldName>;
 
 type Deserializer<S, K extends keyof S> = (serialized: string) => S[K];
 type Serializer<S> = (state: S) => string;
