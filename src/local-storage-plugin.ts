@@ -19,8 +19,8 @@ export function createLocalStoragePlugin<S>(stateMap: LocalStoreStateMap<S>, opt
   const storage = options?.storageImplementation ?? window.localStorage;
 
   return (store: Store<S>) => {
-    // Populate store with existing values in storage
     forEachMappedField(stateMap, (key, field) => {
+      // Populate store with existing value from storage
       const serialized = storage.getItem(key);
       if (serialized != null) {
         if (fieldHasCustomSerialization(field)) {
@@ -29,10 +29,8 @@ export function createLocalStoragePlugin<S>(stateMap: LocalStoreStateMap<S>, opt
           store.state[key] = JSON.parse(serialized) as unknown as S[keyof S]
         }
       }
-    });
 
-    // Persist state changes to storage
-    forEachMappedField(stateMap, (key, field) => {
+      // Persist field change to storage
       store.watch(state => state[key], value => {
         if (fieldHasCustomSerialization(field)) {
           storage.setItem(key, field.serialize(store.state))
@@ -40,10 +38,9 @@ export function createLocalStoragePlugin<S>(stateMap: LocalStoreStateMap<S>, opt
           storage.setItem(key, JSON.stringify(value))
         } 
       }, {
-        deep: typeof store.state[key] === 'object',
-
         // ensures that state changes are persisted synchronously after they're mutated
         flush: 'sync', 
+        deep: typeof store.state[key] === 'object',
       });
     });
   }
