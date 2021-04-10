@@ -16,7 +16,7 @@ describe('createLocalStoragePlugin', () => {
 
     store.commit('name', 'Schmo');
 
-    expect(localStorage.getItem('name')).toBe('"Schmo"');
+    expectItemInLocalStorage('name', '"Schmo"');
   });
 
   it('populates state with existing value from localStorage', () => {
@@ -45,7 +45,7 @@ describe('createLocalStoragePlugin', () => {
     store.commit('name', 'Schmo');
 
     expect(customStorage.getItem('name')).toBe('"Schmo"');
-    expect(localStorage.getItem('name')).toBeNull();
+    expectItemNotToBeInLocalStorage('name')
   });
 
   it('stores numeric state field in localStorage with custom serialization', () => {
@@ -58,15 +58,15 @@ describe('createLocalStoragePlugin', () => {
       })
     );
 
-    expect(localStorage.getItem('count')).toBeNull();
+    expectItemNotToBeInLocalStorage('count');
 
     store.dispatch('increment');
 
-    expect(localStorage.getItem('count')).toBe('1')
+    expectItemInLocalStorage('count', '1');
 
     store.dispatch('increment');
 
-    expect(localStorage.getItem('count')).toBe('2')
+    expectItemInLocalStorage('count', '2');
   });
 
   it('populates numeric state field from localStorage with custom serialization', () => {
@@ -93,7 +93,7 @@ describe('createLocalStoragePlugin', () => {
 
     store.dispatch('increment');
 
-    expect(localStorage.getItem('count')).toBe('1');
+    expectItemInLocalStorage('count', '1');
   });
 
   it('populates numeric state field from localStorage with default serialization', () => {
@@ -106,7 +106,7 @@ describe('createLocalStoragePlugin', () => {
 
     store.dispatch('increment');
 
-    expect(localStorage.getItem('count')).toBe('42');
+    expectItemInLocalStorage('count', '42');
   });
 
   it('stores more complex objects', () => {
@@ -117,9 +117,8 @@ describe('createLocalStoragePlugin', () => {
     store.commit('addTodo', 'red, green, refactor');
 
     const expected = [{ id: 1, text: 'red, green, refactor', done: false }];
-    const actual = JSON.parse(localStorage.getItem('todos')!)
 
-    expect(actual).toEqual(expected);
+    expectItemInLocalStorage('todos', expected, JSON.parse);
   });
 
   it('populates more complex objects', () => {
@@ -144,15 +143,13 @@ describe('createLocalStoragePlugin', () => {
 
     store.commit('addTodo', 'red, green, refactor');
 
-    const expectedTodos = [{ id: 1, text: 'red, green, refactor', done: false }];
-    const actualTodos = JSON.parse(localStorage.getItem('todos')!)
+    expectItemInLocalStorage(
+      'todos',
+      [{ id: 1, text: 'red, green, refactor', done: false }],
+      JSON.parse
+    );
 
-    expect(actualTodos).toEqual(expectedTodos);
-
-    const expectedLastId = 1;
-    const actualLastId = JSON.parse(localStorage.getItem('lastId')!);
-
-    expect(actualLastId).toEqual(expectedLastId);
+    expectItemInLocalStorage('lastId', 1, JSON.parse);
   });
 
   it('populates multiple state fields', () => {
@@ -209,10 +206,7 @@ describe('createLocalStoragePlugin', () => {
 
     store.commit(CHANGE);
 
-    const expected = store.state.color;
-    const actual = JSON.parse(localStorage.getItem('color')!);
-
-    expect(actual).toBe(expected);
+    expectItemInLocalStorage('color', store.state.color, JSON.parse)
   });
 
   it('persists deep changes to an object', () => {
@@ -222,13 +216,19 @@ describe('createLocalStoragePlugin', () => {
 
     store.commit('addTodo', 'red, green, refactor');
 
-    expect(JSON.parse(localStorage.getItem('todos')!))
-      .toEqual([{ id: 1, text: 'red, green, refactor', done: false }]);
+    expectItemInLocalStorage(
+      'todos',
+      [{ id: 1, text: 'red, green, refactor', done: false }],
+      JSON.parse
+    )
 
     store.commit('toggleDone', 1);
 
-    expect(JSON.parse(localStorage.getItem('todos')!))
-      .toEqual([{ id: 1, text: 'red, green, refactor', done: true }]);
+    expectItemInLocalStorage(
+      'todos',
+      [{ id: 1, text: 'red, green, refactor', done: true }],
+      JSON.parse
+    )
   });
 
   it('persists and populates a field using a custom key prefix', () => {
@@ -247,12 +247,26 @@ describe('createLocalStoragePlugin', () => {
 
     store.dispatch('increment');
 
-    expect(localStorage.getItem(countStorageKey)).toBe('42');
-    expect(localStorage.getItem('count')).toBeNull();
+    expectItemInLocalStorage(countStorageKey, '42');
+    expectItemNotToBeInLocalStorage('count');
   })
 });
 
-// Begone, boilerplate
+// Test Helpers
+
+function expectItemInLocalStorage(key: string, item: any, deserializer: (s: string) => any = (s: string) => s) {
+  const serializedValue = localStorage.getItem(key);
+  expect(serializedValue).not.toBeNull();
+  if (serializedValue !== null) {
+    expect(deserializer(serializedValue)).toEqual(item);
+  }
+}
+
+function expectItemNotToBeInLocalStorage(key: string) {
+  expect(localStorage.getItem(key)).toBeNull();
+}
+
+// Store Creators
 
 interface NameStoreState {
   name: string;
