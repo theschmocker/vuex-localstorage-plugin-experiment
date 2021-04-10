@@ -114,7 +114,7 @@ describe('createLocalStoragePlugin', () => {
       todos: true,
     }));
 
-    store.dispatch('addTodo', 'red, green, refactor');
+    store.commit('addTodo', 'red, green, refactor');
 
     const expected = [{ id: 1, text: 'red, green, refactor', done: false }];
     const actual = JSON.parse(localStorage.getItem('todos')!)
@@ -142,7 +142,7 @@ describe('createLocalStoragePlugin', () => {
       lastId: true,
     }));
 
-    store.dispatch('addTodo', 'red, green, refactor');
+    store.commit('addTodo', 'red, green, refactor');
 
     const expectedTodos = [{ id: 1, text: 'red, green, refactor', done: false }];
     const actualTodos = JSON.parse(localStorage.getItem('todos')!)
@@ -174,7 +174,7 @@ describe('createLocalStoragePlugin', () => {
     expect(actualLastId).toEqual(expectedLastId);
   });
 
-  it('can watch for custom mutation name', () => {
+  it('correctly persists value when mutation name does not match state name', () => {
     interface StopLightState {
       color: 'green' | 'yellow' | 'red';
     }
@@ -203,9 +203,7 @@ describe('createLocalStoragePlugin', () => {
         },
       },
       plugins: [createLocalStoragePlugin({
-        color: {
-          mutation: CHANGE,
-        }
+        color: true,
       })],
     });
 
@@ -215,6 +213,22 @@ describe('createLocalStoragePlugin', () => {
     const actual = JSON.parse(localStorage.getItem('color')!);
 
     expect(actual).toBe(expected);
+  });
+
+  it('persists deep changes to an object', () => {
+    const store = createSimpleTodoStore(createLocalStoragePlugin({
+      todos: true,
+    }));
+
+    store.commit('addTodo', 'red, green, refactor');
+
+    expect(JSON.parse(localStorage.getItem('todos')!))
+      .toEqual([{ id: 1, text: 'red, green, refactor', done: false }]);
+
+    store.commit('toggleDone', 1);
+
+    expect(JSON.parse(localStorage.getItem('todos')!))
+      .toEqual([{ id: 1, text: 'red, green, refactor', done: true }]);
   });
 });
 
@@ -284,17 +298,23 @@ function createSimpleTodoStore(plugin: Plugin<TodoStoreState>): Store<TodoStoreS
       todos(state, newTodos: Todo[]) {
         state.todos = newTodos;
       },
+      addTodo(state, text: string) {
+        const { lastId, todos } = state;
+        const nextId = lastId + 1;
+        state.lastId = nextId;
+        todos.push({ id: nextId, text, done: false });
+      },
+      toggleDone(state, id: number) {
+        const todo = state.todos.find(todo => todo.id === id);
+        if (todo) {
+          todo.done = !todo.done;
+        }
+      },
       lastId(state, id: number) {
         state.lastId = id;
       }
     },
     actions: {
-      addTodo({ state, commit }, text: string) {
-        const { lastId, todos } = state;
-        const nextId = lastId + 1;
-        commit('lastId', nextId);
-        commit('todos', [...todos, { id: nextId, text, done: false }]);
-      }
     },
     plugins: [plugin]
   });
