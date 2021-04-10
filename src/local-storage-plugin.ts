@@ -19,16 +19,19 @@ interface LocalStoragePluginOptions {
 
 type FieldDefinition<S, FieldName extends keyof S> = true | FieldWithCustomSerialization<S, FieldName>;
 
+type Serializer<T> = (value: T) => string;
+type Deserializer<S, K extends keyof S> = (serialized: string) => S[K];
+
 interface FieldWithCustomSerialization<S, K extends keyof S> {
   /**
    * Custom function to serialize data for Storage. Defaults to JSON.stringify.
    */
-  serialize: (value: S[K]) => string;
+  serialize: Serializer<S[K]>
 
   /**
    * Custom function to deserialize data from Storage. Defaults to JSON.parse.
    */
-  deserialize: (serialized: string) => S[K];
+  deserialize: Deserializer<S, K>
 }
 
 export function createLocalStoragePlugin<S>(stateMap: LocalStoreStateMap<S>, options?: LocalStoragePluginOptions) {
@@ -39,22 +42,22 @@ export function createLocalStoragePlugin<S>(stateMap: LocalStoreStateMap<S>, opt
       const storageKey = (options?.keyPrefix ?? '') + key;
       
       // Populate store with existing value from storage
-      const serialized = storage.getItem(storageKey);
-      if (serialized != null) {
-        if (fieldHasCustomSerialization(field)) {
-          store.state[key] = field.deserialize(serialized);
-        } else {
-          store.state[key] = JSON.parse(serialized) as unknown as S[keyof S]
-        }
+      const serializedValue = storage.getItem(storageKey);
+      if (serializedValue != null) {
+        const value = fieldHasCustomSerialization(field)
+          ? field.deserialize(serializedValue)
+          : (JSON.parse as Deserializer<S, typeof key>)(serializedValue);
+
+        store.state[key] = value;
       }
 
       // Persist field change to storage
       store.watch(state => state[key], value => {
-        if (fieldHasCustomSerialization(field)) {
-          storage.setItem(storageKey, field.serialize(value))
-        } else {
-          storage.setItem(storageKey, JSON.stringify(value))
-        } 
+        const serializedValue = fieldHasCustomSerialization(field)
+          ? field.serialize(value)
+          : JSON.stringify(value);
+
+        storage.setItem(storageKey, serializedValue);
       }, {
         // ensures that state changes are persisted synchronously after they're mutated
         flush: 'sync', 
@@ -73,7 +76,7 @@ function forEachMappedField<S>(
 ) {
     for (const key of Object.keys(stateMap) as (keyof typeof stateMap)[]) {
       const field = stateMap[key];
-      if (field == null) { // appease TypeScript
+      if (field == null) {
         continue;
       }
 
