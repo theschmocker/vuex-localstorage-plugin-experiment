@@ -1,11 +1,12 @@
 import { Store } from 'vuex';
 
-interface LocalStoragePluginOptions {
-  storageImplementation?: Storage;
-}
-
 type LocalStoreStateMap<S> = {
   [FieldName in keyof S]?: FieldDefinition<S, FieldName>;
+}
+
+interface LocalStoragePluginOptions {
+  storageImplementation?: Storage;
+  keyPrefix?: string;
 }
 
 type FieldDefinition<S, FieldName extends keyof S> = true | FieldWithCustomSerialization<S, FieldName>;
@@ -20,8 +21,10 @@ export function createLocalStoragePlugin<S>(stateMap: LocalStoreStateMap<S>, opt
 
   return (store: Store<S>) => {
     forEachMappedField(stateMap, (key, field) => {
+      const storageKey = (options?.keyPrefix ?? '') + key;
+      
       // Populate store with existing value from storage
-      const serialized = storage.getItem(key);
+      const serialized = storage.getItem(storageKey);
       if (serialized != null) {
         if (fieldHasCustomSerialization(field)) {
           store.state[key] = field.deserialize(serialized);
@@ -33,9 +36,9 @@ export function createLocalStoragePlugin<S>(stateMap: LocalStoreStateMap<S>, opt
       // Persist field change to storage
       store.watch(state => state[key], value => {
         if (fieldHasCustomSerialization(field)) {
-          storage.setItem(key, field.serialize(value))
+          storage.setItem(storageKey, field.serialize(value))
         } else {
-          storage.setItem(key, JSON.stringify(value))
+          storage.setItem(storageKey, JSON.stringify(value))
         } 
       }, {
         // ensures that state changes are persisted synchronously after they're mutated

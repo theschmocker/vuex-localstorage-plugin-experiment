@@ -230,6 +230,26 @@ describe('createLocalStoragePlugin', () => {
     expect(JSON.parse(localStorage.getItem('todos')!))
       .toEqual([{ id: 1, text: 'red, green, refactor', done: true }]);
   });
+
+  it('persists and populates a field using a custom key prefix', () => {
+    const prefix = 'TEST-';
+    const countStorageKey = `${prefix}count`;
+    localStorage.setItem(countStorageKey, '41')
+    const store = createSimpleCountStore(
+      createLocalStoragePlugin<CountStoreState>({
+        count: true,
+      }, {
+        keyPrefix: prefix,
+      })
+    );
+
+    expect(store.state.count).toBe(41);
+
+    store.dispatch('increment');
+
+    expect(localStorage.getItem(countStorageKey)).toBe('42');
+    expect(localStorage.getItem('count')).toBeNull();
+  })
 });
 
 // Begone, boilerplate
