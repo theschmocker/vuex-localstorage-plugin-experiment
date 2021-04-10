@@ -11,7 +11,7 @@ type LocalStoreStateMap<S> = {
 type FieldDefinition<S, FieldName extends keyof S> = true | FieldWithCustomSerialization<S, FieldName>;
 
 interface FieldWithCustomSerialization<S, K extends keyof S> {
-  serialize: (state: S) => string;
+  serialize: (value: S[K]) => string;
   deserialize: (serialized: string) => S[K];
 }
 
@@ -33,7 +33,7 @@ export function createLocalStoragePlugin<S>(stateMap: LocalStoreStateMap<S>, opt
       // Persist field change to storage
       store.watch(state => state[key], value => {
         if (fieldHasCustomSerialization(field)) {
-          storage.setItem(key, field.serialize(store.state))
+          storage.setItem(key, field.serialize(value))
         } else {
           storage.setItem(key, JSON.stringify(value))
         } 

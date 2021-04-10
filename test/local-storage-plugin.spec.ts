@@ -52,7 +52,7 @@ describe('createLocalStoragePlugin', () => {
     const store = createSimpleCountStore(
       createLocalStoragePlugin<CountStoreState>({
         count: {
-          serialize: (state) => state.count.toString(),
+          serialize: (count) => count.toString(),
           deserialize: parseInt
         },
       })
@@ -75,7 +75,7 @@ describe('createLocalStoragePlugin', () => {
     const store = createSimpleCountStore(
       createLocalStoragePlugin<CountStoreState>({
         count: {
-          serialize: (state) => state.count.toString(),
+          serialize: (count) => count.toString(),
           deserialize: parseInt
         },
       })
