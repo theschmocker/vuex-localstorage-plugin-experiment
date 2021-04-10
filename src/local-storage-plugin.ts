@@ -5,14 +5,29 @@ type LocalStoreStateMap<S> = {
 }
 
 interface LocalStoragePluginOptions {
+  /**
+   * Optional custom Storage implementation. Defaults to window.localStorage
+   */
   storageImplementation?: Storage;
+
+  /**
+   * Storage key prefix. Can be used to prevent stored state field names from colliding
+   * with other values in Storage
+   */
   keyPrefix?: string;
 }
 
 type FieldDefinition<S, FieldName extends keyof S> = true | FieldWithCustomSerialization<S, FieldName>;
 
 interface FieldWithCustomSerialization<S, K extends keyof S> {
+  /**
+   * Custom function to serialize data for Storage. Defaults to JSON.stringify.
+   */
   serialize: (value: S[K]) => string;
+
+  /**
+   * Custom function to deserialize data from Storage. Defaults to JSON.parse.
+   */
   deserialize: (serialized: string) => S[K];
 }
 
